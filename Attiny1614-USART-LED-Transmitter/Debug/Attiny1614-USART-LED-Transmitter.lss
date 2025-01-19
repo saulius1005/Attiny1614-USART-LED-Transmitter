@@ -19,7 +19,7 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING
   7 .debug_abbrev 00001b5e  00000000  00000000  00002fdc  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_line   000007ef  00000000  00000000  00004b3a  2**0
+  8 .debug_line   000007f1  00000000  00000000  00004b3a  2**0
                   CONTENTS, READONLY, DEBUGGING
   9 .debug_frame  0000012c  00000000  00000000  0000532c  2**2
                   CONTENTS, READONLY, DEBUGGING
@@ -79,39 +79,40 @@ Disassembly of section .text:
   90:	0c 94 00 00 	jmp	0	; 0x0 <__vectors>
 
 00000094 <ADC0_init>:
- */ 
-
- #include "Settings.h"
-
-void ADC0_init(){
-	ADC0.CTRLB = ADC_SAMPNUM_ACC64_gc; //64 measurements
+ * - Run in free-running mode for continuous sampling.
+ * - Set PA7 (AIN7) as the ADC input channel.
+ * - Start the ADC conversion.
+ */
+void ADC0_init() {
+    ADC0.CTRLB = ADC_SAMPNUM_ACC64_gc; ///< Configure ADC to accumulate 64 measurements.
   94:	e0 e0       	ldi	r30, 0x00	; 0
   96:	f6 e0       	ldi	r31, 0x06	; 6
   98:	86 e0       	ldi	r24, 0x06	; 6
   9a:	81 83       	std	Z+1, r24	; 0x01
-	ADC0.CTRLC = ADC_PRESC_DIV16_gc | ADC_REFSEL_VDDREF_gc; //20mhz/16 adc speed
+    ADC0.CTRLC = ADC_PRESC_DIV16_gc | ADC_REFSEL_VDDREF_gc; ///< Set ADC clock prescaler and reference voltage to VDD.
   9c:	83 e1       	ldi	r24, 0x13	; 19
   9e:	82 83       	std	Z+2, r24	; 0x02
-	ADC0.CTRLA = ADC_ENABLE_bm | ADC_RESSEL_10BIT_gc | ADC_FREERUN_bm; //adc enable with 10bit resolution and starting free runing
+    ADC0.CTRLA = ADC_ENABLE_bm | ADC_RESSEL_10BIT_gc | ADC_FREERUN_bm; ///< Enable ADC, set 10-bit resolution, and start free-running mode.
   a0:	83 e0       	ldi	r24, 0x03	; 3
   a2:	80 83       	st	Z, r24
-	ADC0.MUXPOS  = ADC_MUXPOS_AIN7_gc; //PA7 as ADC input
+    ADC0.MUXPOS = ADC_MUXPOS_AIN7_gc; ///< Set PA7 (AIN7) as the ADC input.
   a4:	87 e0       	ldi	r24, 0x07	; 7
   a6:	86 83       	std	Z+6, r24	; 0x06
-	ADC0.COMMAND = ADC_STCONV_bm; //start conversion
+    ADC0.COMMAND = ADC_STCONV_bm; ///< Start ADC conversion.
   a8:	81 e0       	ldi	r24, 0x01	; 1
   aa:	80 87       	std	Z+8, r24	; 0x08
   ac:	08 95       	ret
 
 000000ae <ADC0_read>:
-}
-
-uint16_t ADC0_read(){
-	//while(!(ADC0.INTFLAGS & ADC_RESRDY_bm)); //wait unti we get result
-	//ADC0.INTFLAGS = ADC_RESRDY_bm; //clear result ready flag
-	return ADC0.RES>>6; //return average ADC value of 64 measurements
+ * The returned value is adjusted to reflect a 10-bit resolution.
+ * 
+ * @return uint16_t The averaged ADC result (10-bit value).
+ */
+uint16_t ADC0_read() {
+    return ADC0.RES >> 6; ///< Return the average ADC value by dividing the 16-bit result by 64.
   ae:	80 91 10 06 	lds	r24, 0x0610	; 0x800610 <__RODATA_PM_OFFSET__+0x7f8610>
   b2:	90 91 11 06 	lds	r25, 0x0611	; 0x800611 <__RODATA_PM_OFFSET__+0x7f8611>
+}
   b6:	00 24       	eor	r0, r0
   b8:	88 0f       	add	r24, r24
   ba:	99 1f       	adc	r25, r25
@@ -124,61 +125,66 @@ uint16_t ADC0_read(){
   c8:	08 95       	ret
 
 000000ca <CLOCK_INHF_clock_init>:
- * @details Configures the internal oscillator with a frequency of 24 MHz. 
- *          Optionally enables clock output on pin PA7. A prescaler can be configured if needed.
+ * - Disables the clock prescaler to achieve full-speed operation.
+ * - Waits for the oscillator configuration to stabilize before exiting.
  */
 void CLOCK_INHF_clock_init() {
-    /* Enable internal oscillator with a frequency of 24 MHz */
-    ccp_write_io((uint8_t *) &CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSC20M_gc/*| CLKCTRL_CLKOUT_bm*/); // for so14 impossible to enable clkout- no actual pin
+    /* Enable the internal oscillator with a frequency of 20 MHz. */
+    ccp_write_io((uint8_t *) &CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSC20M_gc /*| CLKCTRL_CLKOUT_bm*/); 
   ca:	60 e0       	ldi	r22, 0x00	; 0
   cc:	80 e6       	ldi	r24, 0x60	; 96
   ce:	90 e0       	ldi	r25, 0x00	; 0
   d0:	0e 94 9e 03 	call	0x73c	; 0x73c <ccp_write_io>
+    // For SO14, it is impossible to enable CLKOUT due to the lack of a dedicated pin.
 
-    /* Set main clock prescaler is turned off */
-     ccp_write_io((uint8_t *) &CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_2X_gc  & ~CLKCTRL_PEN_bm);
+    /* Disable the main clock prescaler for full-speed operation. */
+    ccp_write_io((uint8_t *) &CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_2X_gc & ~CLKCTRL_PEN_bm);
   d4:	60 e0       	ldi	r22, 0x00	; 0
   d6:	81 e6       	ldi	r24, 0x61	; 97
   d8:	90 e0       	ldi	r25, 0x00	; 0
   da:	0e 94 9e 03 	call	0x73c	; 0x73c <ccp_write_io>
 
-    /* Wait for oscillator change to complete */
+    /* Wait for the oscillator change to complete. */
     while (CLKCTRL.MCLKSTATUS & CLKCTRL_SOSC_bm) {};
   de:	80 91 63 00 	lds	r24, 0x0063	; 0x800063 <__RODATA_PM_OFFSET__+0x7f8063>
   e2:	80 fd       	sbrc	r24, 0
   e4:	fc cf       	rjmp	.-8      	; 0xde <CLOCK_INHF_clock_init+0x14>
+}
   e6:	08 95       	ret
 
 000000e8 <GPIO_init>:
- */ 
- #include "Settings.h"
-
-void GPIO_init(){
-	// Configure Port B (PB) for USART0 TX 
-	PORTB.DIRSET = PIN2_bm  ; // Set PB2 as output
+ * This function configures the GPIO pins needed for USART0 transmission and ADC input:
+ * - PB2 is set as an output for the USART0 TX line.
+ * - PA7 has its digital input buffer disabled to prepare it for analog input (e.g., MT6701 sensor).
+ */
+void GPIO_init() {
+    PORTB.DIRSET = PIN2_bm; ///< Configure PB2 as output for USART0 TX.
   e8:	84 e0       	ldi	r24, 0x04	; 4
   ea:	80 93 21 04 	sts	0x0421, r24	; 0x800421 <__RODATA_PM_OFFSET__+0x7f8421>
-	PORTA.PIN7CTRL = PORT_ISC_INPUT_DISABLE_gc;  // turn off digital input buffer for PA7 ADC MT6701 input
+    PORTA.PIN7CTRL = PORT_ISC_INPUT_DISABLE_gc; ///< Disable the digital input buffer for PA7 (ADC input).
   ee:	80 93 17 04 	sts	0x0417, r24	; 0x800417 <__RODATA_PM_OFFSET__+0x7f8417>
   f2:	08 95       	ret
 
 000000f4 <main>:
-
-#include "Settings.h"
-
+ * 
+ * @return This function does not return any value as it contains an infinite loop.
+ */
 int main(void)
 {
-	GPIO_init();
+    GPIO_init(); ///< Initialize GPIO pins.
   f4:	0e 94 74 00 	call	0xe8	; 0xe8 <GPIO_init>
-	CLOCK_INHF_clock_init();
+    CLOCK_INHF_clock_init(); ///< Initialize the internal 20 MHz clock.
   f8:	0e 94 65 00 	call	0xca	; 0xca <CLOCK_INHF_clock_init>
-	USART0_init();
+    USART0_init(); ///< Initialize USART0 for transmission only.
   fc:	0e 94 91 00 	call	0x122	; 0x122 <USART0_init>
-	ADC0_init();
+    ADC0_init(); ///< Initialize ADC0 for reading the MT6701 sensor.
  100:	0e 94 4a 00 	call	0x94	; 0x94 <ADC0_init>
-    while (1) 
-    {
-		USART_printf("[%04u]\n", ADC0_read());// \n is for MSO5072 decoder as package separator
+         * 
+         * The ADC reading is formatted as a 4-digit zero-padded unsigned integer 
+         * enclosed in square brackets, followed by a newline character ('\n'). 
+         * The newline is used by the MSO5072 oscilloscope for packet separation.
+         */
+        USART_printf("[%04u]\n", ADC0_read());
  104:	0e 94 57 00 	call	0xae	; 0xae <ADC0_read>
  108:	9f 93       	push	r25
  10a:	8f 93       	push	r24
@@ -194,45 +200,45 @@ int main(void)
  120:	f1 cf       	rjmp	.-30     	; 0x104 <__EEPROM_REGION_LENGTH__+0x4>
 
 00000122 <USART0_init>:
- * 
- * This function configures USART0 for asynchronous communication, enabling both
- * transmission and reception at a baud rate of 0.25 Mbps with double-speed operation.
+ * - Double-speed operation for higher communication speed.
+ * - Transmitter enabled, reception mode set for double-speed.
+ * - Asynchronous communication mode with 8 data bits, no parity, and 1 stop bit.
  */
 void USART0_init() {
-	USART0.BAUD = (uint16_t)USART0_BAUD_RATE(250000); // Set baud rate to 0.25 Mbps
+    USART0.BAUD = (uint16_t)USART0_BAUD_RATE(250000); ///< Set baud rate to 0.25 Mbps.
  122:	e0 e0       	ldi	r30, 0x00	; 0
  124:	f8 e0       	ldi	r31, 0x08	; 8
  126:	80 e8       	ldi	r24, 0x80	; 128
  128:	92 e0       	ldi	r25, 0x02	; 2
  12a:	80 87       	std	Z+8, r24	; 0x08
  12c:	91 87       	std	Z+9, r25	; 0x09
-	USART0.CTRLB = USART_TXEN_bm | USART_RXMODE_CLK2X_gc; // Enable TX, double speed mode
+    USART0.CTRLB = USART_TXEN_bm | USART_RXMODE_CLK2X_gc; ///< Enable transmitter, double-speed mode.
  12e:	82 e4       	ldi	r24, 0x42	; 66
  130:	86 83       	std	Z+6, r24	; 0x06
-	USART0.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | USART_CHSIZE_8BIT_gc | USART_PMODE_DISABLED_gc | USART_SBMODE_1BIT_gc; // Configure for 8-bit, no parity, 1 stop bit, asynchronous mode
+    USART0.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | ///< Configure for asynchronous mode.
  132:	83 e0       	ldi	r24, 0x03	; 3
  134:	87 83       	std	Z+7, r24	; 0x07
  136:	08 95       	ret
 
 00000138 <USART0_sendChar>:
- * This function waits until the USART0 data register is empty and then transmits a character.
+ * This function waits for the USART0 data register to be empty and then transmits the specified character.
  * 
- * @param c The character to send.
+ * @param c The character to be transmitted.
  */
 void USART0_sendChar(char c) {
-	while (!(USART0.STATUS & USART_DREIF_bm)); // Wait for data register to be empty
+    while (!(USART0.STATUS & USART_DREIF_bm)); ///< Wait for data register to be empty.
  138:	90 91 04 08 	lds	r25, 0x0804	; 0x800804 <__RODATA_PM_OFFSET__+0x7f8804>
  13c:	95 ff       	sbrs	r25, 5
  13e:	fc cf       	rjmp	.-8      	; 0x138 <USART0_sendChar>
-	USART0.TXDATAL = c; // Send character
+    USART0.TXDATAL = c; ///< Transmit the character.
  140:	80 93 02 08 	sts	0x0802, r24	; 0x800802 <__RODATA_PM_OFFSET__+0x7f8802>
  144:	08 95       	ret
 
 00000146 <USART0_sendString>:
  * 
- * This function sends each character of the string one by one using the USART0_sendChar function.
+ * This function sends a string of characters one by one using the `USART0_sendChar` function.
  * 
- * @param str The string to send.
+ * @param str The string to be transmitted.
  */
 void USART0_sendString(char *str) {
  146:	0f 93       	push	r16
@@ -240,22 +246,22 @@ void USART0_sendString(char *str) {
  14a:	cf 93       	push	r28
  14c:	df 93       	push	r29
  14e:	8c 01       	movw	r16, r24
-	for (size_t i = 0; i < strlen(str); i++) {
+    for (size_t i = 0; i < strlen(str); i++) {
  150:	c0 e0       	ldi	r28, 0x00	; 0
  152:	d0 e0       	ldi	r29, 0x00	; 0
  154:	07 c0       	rjmp	.+14     	; 0x164 <USART0_sendString+0x1e>
-		USART0_sendChar(str[i]); // Send each character
+        USART0_sendChar(str[i]); ///< Send each character of the string.
  156:	f8 01       	movw	r30, r16
  158:	ec 0f       	add	r30, r28
  15a:	fd 1f       	adc	r31, r29
  15c:	80 81       	ld	r24, Z
  15e:	0e 94 9c 00 	call	0x138	; 0x138 <USART0_sendChar>
- * This function sends each character of the string one by one using the USART0_sendChar function.
+ * This function sends a string of characters one by one using the `USART0_sendChar` function.
  * 
- * @param str The string to send.
+ * @param str The string to be transmitted.
  */
 void USART0_sendString(char *str) {
-	for (size_t i = 0; i < strlen(str); i++) {
+    for (size_t i = 0; i < strlen(str); i++) {
  162:	21 96       	adiw	r28, 0x01	; 1
  164:	f8 01       	movw	r30, r16
  166:	01 90       	ld	r0, Z+
@@ -267,8 +273,8 @@ void USART0_sendString(char *str) {
  172:	ce 17       	cp	r28, r30
  174:	df 07       	cpc	r29, r31
  176:	78 f3       	brcs	.-34     	; 0x156 <USART0_sendString+0x10>
-		USART0_sendChar(str[i]); // Send each character
-	}
+        USART0_sendChar(str[i]); ///< Send each character of the string.
+    }
 }
  178:	df 91       	pop	r29
  17a:	cf 91       	pop	r28
@@ -277,10 +283,10 @@ void USART0_sendString(char *str) {
  180:	08 95       	ret
 
 00000182 <USART_printf>:
+ * It uses the standard `vsnprintf` function to handle the formatting of the string.
  * 
- * @param usart_number The USART number (0 or 1).
- * @param format The format string.
- * @param ... The arguments to be formatted into the string.
+ * @param format The format string (printf-style).
+ * @param ... Arguments to be included in the formatted string.
  */
 void USART_printf(const char *format, ...) {
  182:	cf 93       	push	r28
@@ -298,21 +304,20 @@ void USART_printf(const char *format, ...) {
  19a:	41 91       	ld	r20, Z+
  19c:	51 91       	ld	r21, Z+
  19e:	9f 01       	movw	r18, r30
-	char buffer[128]; // Temporary buffer for formatted message
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format, args); // Format the message into the buffer
+    char buffer[128]; ///< Temporary buffer to hold the formatted string.
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args); ///< Format the string into the buffer.
  1a0:	60 e8       	ldi	r22, 0x80	; 128
  1a2:	70 e0       	ldi	r23, 0x00	; 0
  1a4:	ce 01       	movw	r24, r28
  1a6:	01 96       	adiw	r24, 0x01	; 1
  1a8:	0e 94 e1 00 	call	0x1c2	; 0x1c2 <vsnprintf>
-	va_end(args);
-	USART0_sendString(buffer); // Use USART0 for sending
+    va_end(args);
+    USART0_sendString(buffer); ///< Send the formatted string via USART0.
  1ac:	ce 01       	movw	r24, r28
  1ae:	01 96       	adiw	r24, 0x01	; 1
  1b0:	0e 94 a3 00 	call	0x146	; 0x146 <USART0_sendString>
-
 }
  1b4:	c0 58       	subi	r28, 0x80	; 128
  1b6:	df 4f       	sbci	r29, 0xFF	; 255

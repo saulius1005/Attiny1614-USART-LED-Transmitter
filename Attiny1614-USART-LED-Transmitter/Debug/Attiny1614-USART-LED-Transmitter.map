@@ -546,15 +546,15 @@ END GROUP
  .debug_abbrev  0x00001970      0x1da USART.o
  .debug_abbrev  0x00001b4a       0x14 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATtiny_DFP/2.0.368/gcc/dev/attiny1604/avrxmega3\libattiny1604.a(ccp_write.o)
 
-.debug_line     0x00000000      0x7ef
+.debug_line     0x00000000      0x7f1
  *(.debug_line .debug_line.* .debug_line_end)
  .debug_line    0x00000000      0x151 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATtiny_DFP/2.0.368/gcc/dev/attiny1604/avrxmega3/crtattiny1604.o
  .debug_line    0x00000151      0x135 ADC.o
  .debug_line    0x00000286      0x17e CLK.o
- .debug_line    0x00000404      0x106 GPIO.o
- .debug_line    0x0000050a       0x69 main.o
- .debug_line    0x00000573      0x215 USART.o
- .debug_line    0x00000788       0x67 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATtiny_DFP/2.0.368/gcc/dev/attiny1604/avrxmega3\libattiny1604.a(ccp_write.o)
+ .debug_line    0x00000404      0x108 GPIO.o
+ .debug_line    0x0000050c       0x69 main.o
+ .debug_line    0x00000575      0x215 USART.o
+ .debug_line    0x0000078a       0x67 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATtiny_DFP/2.0.368/gcc/dev/attiny1604/avrxmega3\libattiny1604.a(ccp_write.o)
 
 .debug_frame    0x00000000      0x12c
  *(.debug_frame)

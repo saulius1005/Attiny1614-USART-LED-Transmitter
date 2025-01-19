@@ -1,23 +1,36 @@
-/*
- * CLK.c
- *
- * Created: 2025-01-19 14:58:51
- *  Author: Saulius
- */ 
- #include "Settings.h"
- /**
+/**
+ * @file CLK.c
+ * @brief Clock configuration for the ATTiny1614 microcontroller.
+ * 
+ * This file contains the implementation of the internal high-frequency oscillator (OSCHF) initialization.
+ * It configures the main clock source and prescaler settings for the microcontroller.
+ * 
+ * @author Saulius
+ * @date 2025-01-19
+ */
+
+#include "Settings.h"
+
+/**
  * @brief Initializes the internal high-frequency oscillator (OSCHF).
  * 
- * @details Configures the internal oscillator with a frequency of 24 MHz. 
- *          Optionally enables clock output on pin PA7. A prescaler can be configured if needed.
+ * This function configures the ATTiny1614's internal oscillator to run at 20 MHz. 
+ * It ensures proper configuration of the clock source and disables the prescaler for full-speed operation. 
+ * Note: For SO14 packages, enabling clock output (CLKOUT) is not possible due to the absence of a dedicated pin.
+ * 
+ * @details
+ * - Configures the clock source to use the 20 MHz internal oscillator (OSC20M).
+ * - Disables the clock prescaler to achieve full-speed operation.
+ * - Waits for the oscillator configuration to stabilize before exiting.
  */
 void CLOCK_INHF_clock_init() {
-    /* Enable internal oscillator with a frequency of 24 MHz */
-    ccp_write_io((uint8_t *) &CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSC20M_gc/*| CLKCTRL_CLKOUT_bm*/); // for so14 impossible to enable clkout- no actual pin
+    /* Enable the internal oscillator with a frequency of 20 MHz. */
+    ccp_write_io((uint8_t *) &CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSC20M_gc /*| CLKCTRL_CLKOUT_bm*/); 
+    // For SO14, it is impossible to enable CLKOUT due to the lack of a dedicated pin.
 
-    /* Set main clock prescaler is turned off */
-     ccp_write_io((uint8_t *) &CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_2X_gc  & ~CLKCTRL_PEN_bm);
+    /* Disable the main clock prescaler for full-speed operation. */
+    ccp_write_io((uint8_t *) &CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_2X_gc & ~CLKCTRL_PEN_bm);
 
-    /* Wait for oscillator change to complete */
+    /* Wait for the oscillator change to complete. */
     while (CLKCTRL.MCLKSTATUS & CLKCTRL_SOSC_bm) {};
 }
