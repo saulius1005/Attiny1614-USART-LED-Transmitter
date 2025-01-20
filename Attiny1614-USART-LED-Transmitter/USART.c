@@ -21,7 +21,7 @@
  * - Asynchronous communication mode with 8 data bits, no parity, and 1 stop bit.
  */
 void USART0_init() {
-    USART0.BAUD = (uint16_t)USART0_BAUD_RATE(250000); ///< Set baud rate to 0.25 Mbps.
+    USART0.BAUD = (uint16_t)USART0_BAUD_RATE(500000); ///< Set baud rate to 0.25 Mbps.
     USART0.CTRLB = USART_TXEN_bm | USART_RXMODE_CLK2X_gc; ///< Enable transmitter, double-speed mode.
     USART0.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | ///< Configure for asynchronous mode.
                   USART_CHSIZE_8BIT_gc |      ///< Set data frame to 8 bits.
@@ -64,7 +64,7 @@ void USART0_sendString(char *str) {
  * @param ... Arguments to be included in the formatted string.
  */
 void USART_printf(const char *format, ...) {
-    char buffer[128]; ///< Temporary buffer to hold the formatted string.
+    char buffer[30]; ///< Temporary buffer to hold the formatted string.
     va_list args;
     va_start(args, format);
     vsnprintf(buffer, sizeof(buffer), format, args); ///< Format the string into the buffer.
